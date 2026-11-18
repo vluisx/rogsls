@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Excel a QR (local)</title>
+<style>
+:root{--bg:#f5f6f8;--fg:#1c1e21;--card:#fff;--bd:#d9dce1;--ac:#2563eb}
+@media(prefers-color-scheme:dark){:root{--bg:#15171a;--fg:#e8eaed;--card:#202327;--bd:#383c42;--ac:#5b8cff}}
+*{box-sizing:border-box}
+body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--fg);padding:16px}
+h1{font-size:20px;margin:0 0 12px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+#drop{border:2px dashed var(--bd);border-radius:10px;padding:22px;text-align:center;background:var(--card);cursor:pointer;margin-bottom:12px}
+#drop.on{border-color:var(--ac)}
+select,input[type=search],button{padding:7px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--fg);font-size:14px}
+button{cursor:pointer}button:disabled{opacity:.4;cursor:default}
+#info{font-size:13px;opacity:.8}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.it{background:#fff;color:#111;border:1px solid var(--bd);border-radius:8px;padding:8px;text-align:center}
+.it canvas{width:100%;height:auto;image-rendering:pixelated}
+.it small{display:block;font-size:11px;word-break:break-all;max-height:2.6em;overflow:hidden}
+@media print{.bar,#drop,h1{display:none}body{padding:0;background:#fff}.it{break-inside:avoid}}
+</style>
+</head>
+<body>
+<h1>Excel → códigos QR (100% local)</h1>
+<div id="drop">Arrastra tu archivo <b>.xlsx</b> aquí o haz clic para elegirlo
+<input id="file" type="file" accept=".xlsx" hidden></div>
+<div class="bar">
+  <label><input id="hd" type="checkbox" checked> 1ª fila = encabezado</label>
+  <label>Contenido del QR: <select id="col"></select></label>
+  <input id="q" type="search" placeholder="Buscar…">
+  <label>Por página: <select id="ps"><option>30</option><option selected>60</option><option>120</option><option>240</option></select></label>
+  <button id="prev">◀</button><span id="pg"></span><button id="next">▶</button>
+  <button id="prt">Imprimir</button>
+  <span id="info"></span>
+</div>
+<div id="grid"></div>
+
+<script>
+"use strict";
+/* ========== QR (nivel M, modo bytes, 100% propio) ========== */
+const QR=(()=>{
+const EC=[10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28];
+const NB=[1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49];
+const mul=(x,y)=>{let z=0;for(let i=7;i>=0;i--){z=(z<<1)^((z>>>7)*0x11D);z^=((y>>>i)&1)*x}return z};
+const raw=v=>{let r=(16*v+128)*v+64;if(v>=2){const a=(v/7|0)+2;r-=(25*a-10)*a-55;if(v>=7)r-=36}return r};
+const MASKS=[(x,y)=>(x+y)%2==0,(x,y)=>y%2==0,(x,y)=>x%3==0,(x,y)=>(x+y)%3==0,
+ (x,y)=>((x/3|0)+(y/2|0))%2==0,(x,y)=>x*y%2+x*y%3==0,(x,y)=>(x*y%2+x*y%3)%2==0,(x,y)=>((x+y)%2+x*y%3)%2==0];
+function make(text){
+ const b=[...new TextEncoder().encode(text)];let v=1,cap;
+ for(;;v++){if(v>40)return null;cap=(raw(v)>>3)-EC[v-1]*NB[v-1];if(4+(v<10?8:16)+8*b.length<=cap*8)break}
+ const bits=[],put=(val,n)=>{for(let i=n-1;i>=0;i--)bits.push((val>>>i)&1)};
+ put(4,4);put(b.length,v<10?8:16);b.forEach(x=>put(x,8));
+ put(0,Math.min(4,cap*8-bits.length));while(bits.length%8)bits.push(0);
+ for(let p=0xEC;bits.length<cap*8;p^=0xEC^0x11)put(p,8);
+ const data=[];for(let i=0;i<bits.length;i+=8){let x=0;for(let j=0;j<8;j++)x=x<<1|bits[i+j];data.push(x)}
+ const nb=NB[v-1],el=EC[v-1],rc=raw(v)>>3,ns=nb-rc%nb,sl=rc/nb|0;
+ const div=Array(el-1).fill(0);div.push(1);let root=1;
+ for(let i=0;i<el;i++){for(let j=0;j<el;j++){div[j]=mul(div[j],root);if(j+1<el)div[j]^=div[j+1]}root=mul(root,2)}
+ const blocks=[];
+ for(let i=0,k=0;i<nb;i++){
+  const d=data.slice(k,k+sl-el+(i<ns?0:1));k+=d.length;
+  const r=Array(el).fill(0);
+  for(const x of d){const f=x^r.shift();r.push(0);div.forEach((c,j)=>r[j]^=mul(c,f))}
+  if(i<ns)d.push(0);blocks.push(d.concat(r));
+ }
+ const out=[];
+ for(let i=0;i<blocks[0].length;i++)blocks.forEach((bl,j)=>{if(i!=sl-el||j>=ns)out.push(bl[i])});
+ const n=v*4+17,M=Array.from({length:n},()=>Array(n).fill(false)),F=Array.from({length:n},()=>Array(n).fill(false));
+ const set=(x,y,d)=>{M[y][x]=d;F[y][x]=true};
+ for(let i=0;i<n;i++){set(6,i,i%2==0);set(i,6,i%2==0)}
+ const finder=(x,y)=>{for(let dy=-4;dy<=4;dy++)for(let dx=-4;dx<=4;dx++){const d=Math.max(Math.abs(dx),Math.abs(dy)),xx=x+dx,yy=y+dy;if(xx>=0&&xx<n&&yy>=0&&yy<n)set(xx,yy,d!=2&&d!=4)}};
+ finder(3,3);finder(n-4,3);finder(3,n-4);
+ const na=v==1?0:(v/7|0)+2,st=v==32?26:Math.ceil((v*4+4)/(na*2-2))*2;
+ const ap=[6];for(let p=n-7;ap.length<na;p-=st)ap.splice(1,0,p);
+ for(let i=0;i<na;i++)for(let j=0;j<na;j++){
+  if((i==0&&j==0)||(i==0&&j==na-1)||(i==na-1&&j==0))continue;
+  for(let dy=-2;dy<=2;dy++)for(let dx=-2;dx<=2;dx++)set(ap[i]+dx,ap[j]+dy,Math.max(Math.abs(dx),Math.abs(dy))!=1);
+ }
+ const fmt=m=>{let r=m;for(let i=0;i<10;i++)r=(r<<1)^((r>>>9)*0x537);
+  const bt=((m<<10)|r)^0x5412,g=i=>((bt>>>i)&1)==1;
+  for(let i=0;i<=5;i++)set(8,i,g(i));set(8,7,g(6));set(8,8,g(7));set(7,8,g(8));
+  for(let i=9;i<15;i++)set(14-i,8,g(i));
+  for(let i=0;i<8;i++)set(n-1-i,8,g(i));for(let i=8;i<15;i++)set(8,n-15+i,g(i));set(8,n-8,true)};
+ if(v>=7){let r=v;for(let i=0;i<12;i++)r=(r<<1)^((r>>>11)*0x1F25);const bt=(v<<12)|r;
+  for(let i=0;i<18;i++){const d=((bt>>>i)&1)==1,a=n-11+i%3,c=i/3|0;set(a,c,d);set(c,a,d)}}
+ fmt(0);
+ let k=0;
+ for(let r=n-1;r>=1;r-=2){if(r==6)r=5;
+  for(let vt=0;vt<n;vt++)for(let j=0;j<2;j++){
+   const x=r-j,up=((r+1)&2)==0,y=up?n-1-vt:vt;
+   if(!F[y][x]&&k<out.length*8){M[y][x]=((out[k>>>3]>>>(7-(k&7)))&1)==1;k++}
+  }}
+ const mk=m=>{for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(!F[y][x]&&MASKS[m](x,y))M[y][x]=!M[y][x]};
+ const pen=()=>{let p=0;
+  for(let a=0;a<n;a++)for(const t of[0,1]){let run=1;
+   for(let c=1;c<n;c++){const u=t?M[c][a]:M[a][c],w=t?M[c-1][a]:M[a][c-1];
+    if(u==w){run++;if(run==5)p+=3;else if(run>5)p++}else run=1}}
+  for(let y=0;y<n-1;y++)for(let x=0;x<n-1;x++){const c=M[y][x];if(c==M[y][x+1]&&c==M[y+1][x]&&c==M[y+1][x+1])p+=3}
+  return p};
+ let best=0,bp=1e9;
+ for(let m=0;m<8;m++){mk(m);fmt(m);const p=pen();mk(m);if(p<bp){bp=p;best=m}}
+ mk(best);fmt(best);return M;
+}
+return{make};
+})();
+
+function drawQR(cv,text){
+ const m=QR.make(text),n=m?m.length:25,s=Math.max(2,Math.floor(180/(n+8))),z=(n+8)*s;
+ cv.width=cv.height=z;const c=cv.getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,z,z);
+ if(!m){c.fillStyle="#c00";c.font="14px sans-serif";c.fillText("Texto muy largo",8,z/2);return}
+ c.fillStyle="#000";
+ for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(m[y][x])c.fillRect((x+4)*s,(y+4)*s,s,s);
+}
+
+/* ========== Lector XLSX sin librerías (ZIP + XML) ========== */
+async function unzip(buf){
+ const v=new DataView(buf),u=new Uint8Array(buf);let e=u.length-22;
+ while(e>=0&&v.getUint32(e,true)!==0x06054b50)e--;
+ if(e<0)throw Error("No es un archivo .xlsx válido");
+ let n=v.getUint16(e+10,true),p=v.getUint32(e+16,true);const files={},td=new TextDecoder();
+ for(;n--;){
+  const m=v.getUint16(p+10,true),cs=v.getUint32(p+20,true),nl=v.getUint16(p+28,true),
+        xl=v.getUint16(p+30,true),cl=v.getUint16(p+32,true),lo=v.getUint32(p+42,true);
+  files[td.decode(u.subarray(p+46,p+46+nl))]={m,cs,lo};p+=46+nl+xl+cl;
+ }
+ return{files,async text(name){
+  const f=files[name];if(!f)return null;
+  const s=f.lo+30+v.getUint16(f.lo+26,true)+v.getUint16(f.lo+28,true),d=u.subarray(s,s+f.cs);
+  if(f.m===0)return td.decode(d);
+  return new Response(new Blob([d]).stream().pipeThrough(new DecompressionStream("deflate-raw"))).text();
+ }};
+}
+const colN=r=>{let n=0;for(const c of r.replace(/\d/g,""))n=n*26+c.charCodeAt(0)-64;return n-1};
+async function readXlsx(buf){
+ if(typeof DecompressionStream==="undefined")throw Error("Navegador antiguo: usa Chrome/Edge/Firefox/Safari recientes");
+ const z=await unzip(buf),P=t=>new DOMParser().parseFromString(t,"text/xml");
+ const ss=[],sx=await z.text("xl/sharedStrings.xml");
+ if(sx)for(const si of P(sx).getElementsByTagName("si"))
+  ss.push([...si.getElementsByTagName("t")].filter(t=>t.parentNode.nodeName!=="rPh").map(t=>t.textContent).join(""));
+ const name=z.files["xl/worksheets/sheet1.xml"]?"xl/worksheets/sheet1.xml":Object.keys(z.files).filter(k=>/^xl\/worksheets\/sheet\d+\.xml$/.test(k)).sort()[0];
+ if(!name)throw Error("No se encontró ninguna hoja");
+ const rows=[];
+ for(const r of P(await z.text(name)).getElementsByTagName("row")){
+  const a=[];
+  for(const c of r.getElementsByTagName("c")){
+   const t=c.getAttribute("t"),vv=c.getElementsByTagName("v")[0];let val="";
+   if(t==="s"&&vv)val=ss[+vv.textContent]??"";
+   else if(t==="inlineStr")val=[...c.getElementsByTagName("t")].map(x=>x.textContent).join("");
+   else if(vv)val=vv.textContent;
+   a[colN(c.getAttribute("r"))]=val;
+  }
+  const row=Array.from(a,x=>x??"");if(row.some(x=>x!==""))rows.push(row);
+ }
+ return rows;
+}
+
+/* ========== Interfaz ========== */
+const $=id=>document.getElementById(id);
+let head=[],data=[],list=[],page=0;
+const txt=r=>$("col").value==="*"?r.join(" | "):(r[+$("col").value]??"");
+
+function setCols(){
+ const n=Math.max(head.length,...data.slice(0,50).map(r=>r.length),1),s=$("col");s.innerHTML="";
+ s.add(new Option("Todas las columnas","*"));
+ for(let i=0;i<n;i++)s.add(new Option(head[i]||"Columna "+(i+1),i));
+}
+function filt(){
+ const q=$("q").value.toLowerCase();
+ list=q?data.filter(r=>r.join(" ").toLowerCase().includes(q)):data;page=0;render();
+}
+function render(){
+ const ps=+$("ps").value,pages=Math.max(1,Math.ceil(list.length/ps));page=Math.min(page,pages-1);
+ const g=$("grid");g.innerHTML="";
+ for(const r of list.slice(page*ps,page*ps+ps)){
+  const d=document.createElement("div"),cv=document.createElement("canvas"),sm=document.createElement("small"),t=txt(r);
+  d.className="it";drawQR(cv,t);sm.textContent=r[0]||t;d.title=t;d.append(cv,sm);g.append(d);
+ }
+ $("pg").textContent=` ${page+1} / ${pages} `;
+ $("prev").disabled=page<=0;$("next").disabled=page>=pages-1;
+ $("info").textContent=`${list.length.toLocaleString()} de ${data.length.toLocaleString()} filas`;
+}
+async function load(f){
+ if(!f)return;$("info").textContent="Leyendo…";
+ try{
+  const rows=await readXlsx(await f.arrayBuffer());
+  if($("hd").checked){head=rows[0]||[];data=rows.slice(1)}else{head=[];data=rows}
+  setCols();$("q").value="";filt();
+ }catch(e){$("info").textContent="Error: "+e.message}
+}
+const dz=$("drop"),fi=$("file");
+dz.onclick=()=>fi.click();fi.onchange=()=>load(fi.files[0]);
+dz.ondragover=e=>{e.preventDefault();dz.classList.add("on")};
+dz.ondragleave=()=>dz.classList.remove("on");
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove("on");load(e.dataTransfer.files[0])};
+$("col").onchange=render;$("ps").onchange=()=>{page=0;render()};
+$("q").oninput=filt;$("hd").onchange=()=>fi.files[0]&&load(fi.files[0]);
+$("prev").onclick=()=>{page--;render()};$("next").onclick=()=>{page++;render()};
+$("prt").onclick=()=>window.print();
+$("prev").disabled=$("next").disabled=true;
+</script>
+</body>
+</html>
