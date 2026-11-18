@@ -1,43 +1,39 @@
 <!DOCTYPE html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Excel a QR (local)</title>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Prueba: ¿caben mis datos en 1 o 2 QR?</title>
 <style>
 :root{--bg:#f5f6f8;--fg:#1c1e21;--card:#fff;--bd:#d9dce1;--ac:#2563eb}
 @media(prefers-color-scheme:dark){:root{--bg:#15171a;--fg:#e8eaed;--card:#202327;--bd:#383c42;--ac:#5b8cff}}
-*{box-sizing:border-box}
-body{margin:0;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--fg);padding:16px}
-h1{font-size:20px;margin:0 0 12px}
-.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
-#drop{border:2px dashed var(--bd);border-radius:10px;padding:22px;text-align:center;background:var(--card);cursor:pointer;margin-bottom:12px}
+*{box-sizing:border-box}body{margin:auto;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--fg);padding:16px;max-width:900px}
+h1{font-size:20px;margin:0 0 12px}.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+#drop{border:2px dashed var(--bd);border-radius:10px;padding:20px;text-align:center;background:var(--card);cursor:pointer;margin-bottom:12px}
 #drop.on{border-color:var(--ac)}
-select,input[type=search],button{padding:7px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--fg);font-size:14px}
-button{cursor:pointer}button:disabled{opacity:.4;cursor:default}
-#info{font-size:13px;opacity:.8}
-#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+select,button,textarea,input[type=number]{padding:7px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--fg);font-size:14px}
+input[type=number]{width:70px}button{cursor:pointer}textarea{width:100%;height:90px;font-family:monospace;font-size:12px}
+.box{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:12px;font-size:14px;line-height:1.6}
+.ok{border-color:#16a34a}.no{border-color:#dc2626}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
 .it{background:#fff;color:#111;border:1px solid var(--bd);border-radius:8px;padding:8px;text-align:center}
-.it canvas{width:100%;height:auto;image-rendering:pixelated}
-.it small{display:block;font-size:11px;word-break:break-all;max-height:2.6em;overflow:hidden}
-@media print{.bar,#drop,h1{display:none}body{padding:0;background:#fff}.it{break-inside:avoid}}
-</style>
-</head>
-<body>
-<h1>Excel → códigos QR (100% local)</h1>
-<div id="drop">Arrastra tu archivo <b>.xlsx</b> aquí o haz clic para elegirlo
-<input id="file" type="file" accept=".xlsx" hidden></div>
+.it canvas{width:100%;height:auto;image-rendering:pixelated}.it b{display:block}
+</style></head><body>
+<h1>Prueba: ¿caben mis datos en 1 o 2 QR? (100% local)</h1>
+<div id="drop">Arrastra tu <b>.xlsx</b> o <b>.csv</b> aquí o haz clic<input id="file" type="file" accept=".xlsx,.csv,.txt" hidden></div>
 <div class="bar">
-  <label><input id="hd" type="checkbox" checked> 1ª fila = encabezado</label>
-  <label>Contenido del QR: <select id="col"></select></label>
-  <input id="q" type="search" placeholder="Buscar…">
-  <label>Por página: <select id="ps"><option>30</option><option selected>60</option><option>120</option><option>240</option></select></label>
-  <button id="prev">◀</button><span id="pg"></span><button id="next">▶</button>
-  <button id="prt">Imprimir</button>
-  <span id="info"></span>
+ <label><input id="hd" type="checkbox" checked> 1ª fila = encabezado</label>
+ <label>Ordenar por: <select id="scol"></select></label>
+ <select id="dir"><option value="a">Ascendente</option><option value="d">Descendente</option></select>
 </div>
+<div class="bar">
+ <label>Cantidad de QR: <input id="n" type="number" min="1" max="30" value="1"></label>
+ <label>Modo: <select id="mode"><option value="p">Texto plano (el celular muestra los datos)</option><option value="z">Comprimido (caben más filas, requiere decodificador)</option></select></label>
+ <label>Capacidad por QR: <select id="cap"><option value="2300">2300 (máxima, difícil de escanear)</option><option value="1200">1200 (recomendada)</option><option value="600">600 (muy fácil)</option></select></label>
+ <button id="go">Probar</button>
+</div>
+<div id="res" class="box">Carga un archivo para empezar.</div>
 <div id="grid"></div>
-
+<details style="margin-top:14px"><summary>Decodificador (solo para modo comprimido)</summary>
+<p style="font-size:13px">Pega los textos de los QR, uno por línea.</p><textarea id="din"></textarea>
+<div class="bar" style="margin-top:6px"><button id="dgo">Reconstruir</button><span id="dmsg"></span></div><textarea id="dout" readonly></textarea></details>
 <script>
 "use strict";
 /* ========== QR (nivel M, modo bytes, 100% propio) ========== */
@@ -108,7 +104,7 @@ return{make};
 })();
 
 function drawQR(cv,text){
- const m=QR.make(text),n=m?m.length:25,s=Math.max(2,Math.floor(180/(n+8))),z=(n+8)*s;
+ const m=QR.make(text),n=m?m.length:25,s=Math.max(2,Math.floor(360/(n+8))),z=(n+8)*s;
  cv.width=cv.height=z;const c=cv.getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,z,z);
  if(!m){c.fillStyle="#c00";c.font="14px sans-serif";c.fillText("Texto muy largo",8,z/2);return}
  c.fillStyle="#000";
@@ -157,49 +153,85 @@ async function readXlsx(buf){
  return rows;
 }
 
-/* ========== Interfaz ========== */
+/* ========== CSV ========== */
+function parseCSV(t){
+ t=t.replace(/^\uFEFF/,"");const first=t.split(/\r?\n/,1)[0];
+ const d=[";","\t",","].map(c=>[c,first.split(c).length]).sort((a,b)=>b[1]-a[1])[0][0];
+ const rows=[];let r=[],f="",q=false;
+ for(let i=0;i<t.length;i++){const c=t[i];
+  if(q){if(c=='"'){if(t[i+1]=='"'){f+='"';i++}else q=false}else f+=c}
+  else if(c=='"')q=true;
+  else if(c==d){r.push(f);f=""}
+  else if(c=="\n"||c=="\r"){if(c=="\r"&&t[i+1]=="\n")i++;r.push(f);f="";if(r.some(x=>x!==""))rows.push(r);r=[]}
+  else f+=c}
+ r.push(f);if(r.some(x=>x!==""))rows.push(r);return rows;
+}
+/* ========== Compresión / base64 ========== */
+const pipe=async(b,S)=>new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new S("deflate-raw"))).arrayBuffer());
+const deflate=b=>pipe(b,CompressionStream),inflate=b=>pipe(b,DecompressionStream);
+const b64e=u=>{let s="";for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
+const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const $=id=>document.getElementById(id);
-let head=[],data=[],list=[],page=0;
-const txt=r=>$("col").value==="*"?r.join(" | "):(r[+$("col").value]??"");
-
-function setCols(){
- const n=Math.max(head.length,...data.slice(0,50).map(r=>r.length),1),s=$("col");s.innerHTML="";
- s.add(new Option("Todas las columnas","*"));
- for(let i=0;i<n;i++)s.add(new Option(head[i]||"Columna "+(i+1),i));
+let rawRows=[],headR=[],data=[];
+const enc=new TextEncoder(),by=s=>enc.encode(s).length;
+const line=r=>r.map(c=>String(c).replace(/[\t\r\n]+/g," ")).join("\t");
+function split(){
+ if($("hd").checked){headR=rawRows[0]||[];data=rawRows.slice(1)}else{headR=[];data=rawRows}
+ const n=Math.max(headR.length,...data.slice(0,50).map(r=>r.length),1),s=$("scol");s.innerHTML="";s.add(new Option("(sin ordenar)",""));
+ for(let i=0;i<n;i++)s.add(new Option(headR[i]||"Columna "+(i+1),i));
 }
-function filt(){
- const q=$("q").value.toLowerCase();
- list=q?data.filter(r=>r.join(" ").toLowerCase().includes(q)):data;page=0;render();
-}
-function render(){
- const ps=+$("ps").value,pages=Math.max(1,Math.ceil(list.length/ps));page=Math.min(page,pages-1);
- const g=$("grid");g.innerHTML="";
- for(const r of list.slice(page*ps,page*ps+ps)){
-  const d=document.createElement("div"),cv=document.createElement("canvas"),sm=document.createElement("small"),t=txt(r);
-  d.className="it";drawQR(cv,t);sm.textContent=r[0]||t;d.title=t;d.append(cv,sm);g.append(d);
+async function run(){
+ if(!data.length)return;const R=$("res");R.className="box";R.textContent="Calculando…";await new Promise(r=>setTimeout(r));
+ const col=$("scol").value,dir=$("dir").value==="d"?-1:1;let rows=data.slice();
+ if(col!=="")rows.sort((a,b)=>dir*String(a[col]??"").localeCompare(String(b[col]??""),"es",{numeric:true}));
+ const hasH=headR.length>0,total=rows.length,H=hasH?line(headR):"";
+ const L=rows.map(line),cap=+$("cap").value,N=Math.max(1,Math.min(30,+$("n").value||1)),mode=$("mode").value;
+ const fullText=(hasH?H+"\n":"")+L.join("\n"),rawB=by(fullText);
+ let parts=[],fit=0,need=0,extra="";
+ if(mode==="z"){
+  const per=cap-14,pack=async k=>b64e(await deflate(enc.encode((hasH?H+"\n":"")+L.slice(0,k).join("\n"))));
+  const full=await pack(total);need=Math.ceil(full.length/per);let b=full;
+  extra=` · comprimido: <b>${(full.length*0.75/1024).toFixed(1)} KB</b> reales (${full.length.toLocaleString()} caracteres en base64)`;
+  if(full.length<=N*per)fit=total;
+  else{let lo=0,hi=total;while(lo<hi){const m=(lo+hi+1)>>1;if((await pack(m)).length<=N*per)lo=m;else hi=m-1}fit=lo;b=await pack(fit)}
+  const n=Math.max(1,Math.ceil(b.length/per)),id=Math.random().toString(36).slice(2,6);
+  parts=Array.from({length:n},(_,i)=>`${id}|${i+1}|${n}|1|${b.slice(i*per,(i+1)*per)}`);
+ }else{
+  const hb=hasH?by(H)+1:0,budget=cap-14-hb,chunks=[];let cur=[],cb=0;
+  for(const l of L){const b=by(l)+1;if(cb+b>budget&&cur.length){chunks.push(cur);cur=[];cb=0}cur.push(l);cb+=b}
+  if(cur.length)chunks.push(cur);need=chunks.length;const use=chunks.slice(0,N);fit=use.reduce((s,c)=>s+c.length,0);
+  parts=use.map((c,i)=>(use.length>1?`QR ${i+1}/${use.length}\n`:"")+(hasH?H+"\n":"")+c.join("\n"));
  }
- $("pg").textContent=` ${page+1} / ${pages} `;
- $("prev").disabled=page<=0;$("next").disabled=page>=pages-1;
- $("info").textContent=`${list.length.toLocaleString()} de ${data.length.toLocaleString()} filas`;
+ const ok=fit>=total,pct=(fit/total*100).toFixed(1);
+ R.className="box "+(ok?"ok":"no");
+ R.innerHTML=`<b>${ok?"✔ SÍ caben todos los datos":"✘ NO caben todos los datos"}</b> en ${parts.length} QR.<br>`+
+  `Filas totales: <b>${total.toLocaleString()}</b> · tamaño de la tabla: <b>${(rawB/1024).toFixed(1)} KB</b>${extra}<br>`+
+  `Filas incluidas en estos ${parts.length} QR: <b>${fit.toLocaleString()}</b> (${pct}%)<br>`+
+  (ok?"":`Para meter las ${total.toLocaleString()} filas harían falta <b>${need.toLocaleString()} QR</b> con esta configuración.`);
+ const g=$("grid");g.innerHTML="";
+ parts.forEach((t,i)=>{const d=document.createElement("div"),cv=document.createElement("canvas"),b=document.createElement("b");
+  d.className="it";drawQR(cv,t);b.textContent=`QR ${i+1} de ${parts.length}`;d.append(cv,b);g.append(d)});
 }
 async function load(f){
- if(!f)return;$("info").textContent="Leyendo…";
+ if(!f)return;$("res").textContent="Leyendo…";
  try{
-  const rows=await readXlsx(await f.arrayBuffer());
-  if($("hd").checked){head=rows[0]||[];data=rows.slice(1)}else{head=[];data=rows}
-  setCols();$("q").value="";filt();
- }catch(e){$("info").textContent="Error: "+e.message}
+  if(/\.xlsx$/i.test(f.name))rawRows=await readXlsx(await f.arrayBuffer());
+  else{const b=await f.arrayBuffer();let t;try{t=new TextDecoder("utf-8",{fatal:true}).decode(b)}catch(e){t=new TextDecoder("windows-1252").decode(b)}rawRows=parseCSV(t)}
+  split();await run();
+ }catch(e){$("res").textContent="Error: "+e.message}
 }
 const dz=$("drop"),fi=$("file");
 dz.onclick=()=>fi.click();fi.onchange=()=>load(fi.files[0]);
-dz.ondragover=e=>{e.preventDefault();dz.classList.add("on")};
-dz.ondragleave=()=>dz.classList.remove("on");
+dz.ondragover=e=>{e.preventDefault();dz.classList.add("on")};dz.ondragleave=()=>dz.classList.remove("on");
 dz.ondrop=e=>{e.preventDefault();dz.classList.remove("on");load(e.dataTransfer.files[0])};
-$("col").onchange=render;$("ps").onchange=()=>{page=0;render()};
-$("q").oninput=filt;$("hd").onchange=()=>fi.files[0]&&load(fi.files[0]);
-$("prev").onclick=()=>{page--;render()};$("next").onclick=()=>{page++;render()};
-$("prt").onclick=()=>window.print();
-$("prev").disabled=$("next").disabled=true;
-</script>
-</body>
-</html>
+$("go").onclick=run;$("hd").onchange=()=>{if(rawRows.length){split();run()}};
+$("dgo").onclick=async()=>{
+ const m=new Map();let N=0;
+ for(const l of $("din").value.split(/\r?\n/)){const x=/^\s*[a-z0-9]{4}\|(\d+)\|(\d+)\|1\|(\S+)\s*$/.exec(l);if(x){m.set(+x[1],x[3]);N=+x[2]}}
+ if(!N){$("dmsg").textContent="Sin partes válidas";return}
+ const miss=[];for(let i=1;i<=N;i++)if(!m.has(i))miss.push(i);
+ if(miss.length){$("dmsg").textContent="Faltan partes: "+miss.join(", ");return}
+ try{$("dout").value=new TextDecoder().decode(await inflate(b64d([...Array(N).keys()].map(i=>m.get(i+1)).join(""))));$("dmsg").textContent="OK"}
+ catch(e){$("dmsg").textContent="Datos dañados"}
+};
+</script></body></html>
