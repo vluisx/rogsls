@@ -2,60 +2,23 @@
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Roger Qr Detect</title>
 <style>
-:root{--bg:#06122b;--bg2:#0b1d44;--card:#0f2a5f;--bd:#1f4a96;--fg:#e6f0ff;--mut:#9db8e6;--ac:#4da3ff;--ac2:#7cc4ff}
+:root{--bg:#06122b;--bd:#1f4a96;--fg:#e6f0ff;--mut:#9db8e6;--ac:#4da3ff}
 *{box-sizing:border-box}
-body{margin:auto;font-family:system-ui,Segoe UI,Arial,sans-serif;color:var(--fg);padding:16px;max-width:900px;min-height:100vh;
- background:radial-gradient(1200px 600px at 50% -10%,var(--bg2),var(--bg))}
-h1{font-size:34px;margin:6px 0 4px;text-align:center;letter-spacing:1px;font-weight:800}
-h1 span{display:inline-block;color:var(--ac2);animation:wave 1.8s ease-in-out infinite;text-shadow:0 0 14px rgba(77,163,255,.55)}
-h1 span.sp{width:.35em}
-@keyframes wave{0%,100%{transform:translateY(0);color:var(--ac2)}50%{transform:translateY(-8px);color:#fff}}
-.sub{text-align:center;color:var(--mut);font-size:13px;margin-bottom:18px}
-.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;color:var(--mut)}
-#drop{border:2px dashed var(--bd);border-radius:12px;padding:22px;text-align:center;background:rgba(15,42,95,.55);cursor:pointer;margin-bottom:12px;transition:.2s}
-#drop:hover,#drop.on{border-color:var(--ac);box-shadow:0 0 18px rgba(77,163,255,.3)}
-select,button,textarea,input[type=number]{padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--fg);font-size:14px}
-input[type=number]{width:70px}button{cursor:pointer;transition:.15s}button:hover{border-color:var(--ac)}
-button.p{background:linear-gradient(135deg,#1f6fe0,#4da3ff);border:none;font-weight:700;color:#fff}
-textarea{width:100%;height:90px;font-family:monospace;font-size:12px}
-.box{background:rgba(15,42,95,.7);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px;font-size:14px;line-height:1.7}
-.ok{border-color:#2ecc8f}.no{border-color:#ff7a7a}
-.spin{display:inline-block;width:16px;height:16px;border:3px solid var(--bd);border-top-color:var(--ac2);border-radius:50%;animation:rot .7s linear infinite;vertical-align:-3px;margin-right:6px}
-@keyframes rot{to{transform:rotate(360deg)}}
-#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
-.it{background:#fff;color:#0a1a3a;border:3px solid var(--ac);border-radius:12px;padding:10px;text-align:center;animation:pop .35s ease both}
-@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
-.it canvas{width:100%;height:auto;image-rendering:pixelated}.it b{display:block;margin-top:4px}
-details{margin-top:14px;color:var(--mut)}summary{cursor:pointer;color:var(--ac2)}
-#splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9;
- animation:hide .4s ease 1s forwards;color:var(--ac2);font-weight:700;letter-spacing:2px}
-#splash i{width:46px;height:46px;border:5px solid var(--bd);border-top-color:var(--ac2);border-radius:50%;animation:rot .7s linear infinite}
-@keyframes hide{to{opacity:0;visibility:hidden}}
+body{margin:auto;font-family:system-ui,Segoe UI,Arial,sans-serif;color:var(--fg);background:var(--bg);padding:16px;max-width:900px;min-height:100vh}
+h1{font-size:34px;margin:6px 0 18px;text-align:center;font-weight:800}
+#drop{border:2px dashed var(--bd);border-radius:12px;padding:22px;text-align:center;cursor:pointer;margin-bottom:12px}
+#drop:hover,#drop.on{border-color:var(--ac)}
+#res{border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px;font-size:15px;line-height:1.7;color:var(--mut)}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+.it{background:#fff;color:#0a1a3a;border-radius:10px;padding:8px;text-align:center}
+.it canvas{width:100%;height:auto;image-rendering:pixelated}
 </style></head><body>
-<div id="splash"><i></i>ROGER QR DETECT</div>
-<h1 id="ttl">Roger Qr Detect</h1>
-<div class="sub">Convierte tu Excel/CSV en QR · 100% local, sin internet</div>
+<h1>Roger Qr Detect</h1>
 <div id="drop">Arrastra tu <b>.xlsx</b> o <b>.csv</b> aquí o haz clic<input id="file" type="file" accept=".xlsx,.csv,.txt" hidden></div>
-<div class="bar">
- <label><input id="hd" type="checkbox" checked> 1ª fila = encabezado</label>
- <label>Ordenar por: <select id="scol"></select></label>
- <select id="dir"><option value="a">Ascendente</option><option value="d">Descendente</option></select>
-</div>
-<div class="bar">
- <label>Cantidad de QR: <input id="n" type="number" min="1" max="30" value="3"></label>
- <label>Modo: <select id="mode"><option value="p">Texto plano (el celular muestra los datos)</option><option value="z">Comprimido (caben más filas, requiere decodificador)</option></select></label>
- <label>Capacidad por QR: <select id="cap"><option value="1200">1200 (escaneable)</option><option value="600">600 (muy fácil)</option><option value="2300">2300 (máxima, densa)</option></select></label>
- <button id="go" class="p">Probar</button>
-</div>
-<div id="res" class="box">Carga un archivo para empezar.</div>
+<div id="res">Carga un archivo para empezar.</div>
 <div id="grid"></div>
-<details><summary>Decodificador (solo para modo comprimido)</summary>
-<p style="font-size:13px">Pega los textos de los QR, uno por línea.</p><textarea id="din"></textarea>
-<div class="bar" style="margin-top:6px"><button id="dgo">Reconstruir</button><span id="dmsg"></span></div><textarea id="dout" readonly></textarea></details>
 <script>
 "use strict";
-(function(){const t=document.getElementById("ttl"),s="Roger Qr Detect";t.textContent="";[...s].forEach((c,i)=>{const e=document.createElement("span");e.textContent=c===" "?"\u00a0":c;if(c===" ")e.className="sp";e.style.animationDelay=(i*0.09)+"s";t.append(e)})})();
-/* ========== QR (nivel M, modo bytes, 100% propio) ========== */
 const QR=(()=>{
 const EC=[10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28];
 const NB=[1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49];
@@ -123,14 +86,11 @@ return{make};
 })();
 
 function drawQR(cv,text){
- const m=QR.make(text),n=m?m.length:25,s=Math.max(2,Math.floor(360/(n+8))),z=(n+8)*s;
- cv.width=cv.height=z;const c=cv.getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,z,z);
- if(!m){c.fillStyle="#c00";c.font="14px sans-serif";c.fillText("Texto muy largo",8,z/2);return}
- c.fillStyle="#000";
+ const m=QR.make(text),n=m.length,s=Math.max(2,Math.floor(360/(n+8))),z=(n+8)*s;
+ cv.width=cv.height=z;const c=cv.getContext("2d");c.fillStyle="#fff";c.fillRect(0,0,z,z);c.fillStyle="#000";
  for(let y=0;y<n;y++)for(let x=0;x<n;x++)if(m[y][x])c.fillRect((x+4)*s,(y+4)*s,s,s);
 }
 
-/* ========== Lector XLSX sin librerías (ZIP + XML) ========== */
 async function unzip(buf){
  const v=new DataView(buf),u=new Uint8Array(buf);let e=u.length-22;
  while(e>=0&&v.getUint32(e,true)!==0x06054b50)e--;
@@ -150,7 +110,6 @@ async function unzip(buf){
 }
 const colN=r=>{let n=0;for(const c of r.replace(/\d/g,""))n=n*26+c.charCodeAt(0)-64;return n-1};
 async function readXlsx(buf){
- if(typeof DecompressionStream==="undefined")throw Error("Navegador antiguo: usa Chrome/Edge/Firefox/Safari recientes");
  const z=await unzip(buf),P=t=>new DOMParser().parseFromString(t,"text/xml");
  const ss=[],sx=await z.text("xl/sharedStrings.xml");
  if(sx)for(const si of P(sx).getElementsByTagName("si"))
@@ -172,7 +131,6 @@ async function readXlsx(buf){
  return rows;
 }
 
-/* ========== CSV ========== */
 function parseCSV(t){
  t=t.replace(/^\uFEFF/,"");const first=t.split(/\r?\n/,1)[0];
  const d=[";","\t",","].map(c=>[c,first.split(c).length]).sort((a,b)=>b[1]-a[1])[0][0];
@@ -185,72 +143,34 @@ function parseCSV(t){
   else f+=c}
  r.push(f);if(r.some(x=>x!==""))rows.push(r);return rows;
 }
-/* ========== Compresión / base64 ========== */
-const pipe=async(b,S)=>new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new S("deflate-raw"))).arrayBuffer());
-const deflate=b=>pipe(b,CompressionStream),inflate=b=>pipe(b,DecompressionStream);
+
+const deflate=async b=>new Uint8Array(await new Response(new Blob([b]).stream().pipeThrough(new CompressionStream("deflate-raw"))).arrayBuffer());
 const b64e=u=>{let s="";for(let i=0;i<u.length;i+=8192)s+=String.fromCharCode.apply(null,u.subarray(i,i+8192));return btoa(s)};
-const b64d=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));
 const $=id=>document.getElementById(id);
-let rawRows=[],headR=[],data=[];
-const enc=new TextEncoder(),by=s=>enc.encode(s).length;
-const line=r=>r.map(c=>String(c).replace(/[\t\r\n]+/g," ")).join("\t");
-function split(){
- if($("hd").checked){headR=rawRows[0]||[];data=rawRows.slice(1)}else{headR=[];data=rawRows}
- const n=Math.max(headR.length,...data.slice(0,50).map(r=>r.length),1),s=$("scol");s.innerHTML="";s.add(new Option("(sin ordenar)",""));
- for(let i=0;i<n;i++)s.add(new Option(headR[i]||"Columna "+(i+1),i));
-}
-async function run(){
- if(!data.length)return;const R=$("res");R.className="box";R.innerHTML='<span class="spin"></span>Calculando…';await new Promise(r=>setTimeout(r));
- const col=$("scol").value,dir=$("dir").value==="d"?-1:1;let rows=data.slice();
- if(col!=="")rows.sort((a,b)=>dir*String(a[col]??"").localeCompare(String(b[col]??""),"es",{numeric:true}));
- const hasH=headR.length>0,total=rows.length,H=hasH?line(headR):"";
- const L=rows.map(line),cap=+$("cap").value,N=Math.max(1,Math.min(30,+$("n").value||1)),mode=$("mode").value;
- const fullText=(hasH?H+"\n":"")+L.join("\n"),rawB=by(fullText);
- let parts=[],fit=0,need=0,extra="";
- if(mode==="z"){
-  const per=cap-14,pack=async k=>b64e(await deflate(enc.encode((hasH?H+"\n":"")+L.slice(0,k).join("\n"))));
-  const full=await pack(total);need=Math.ceil(full.length/per);let b=full;
-  extra=` · comprimido: <b>${(full.length*0.75/1024).toFixed(1)} KB</b> reales (${full.length.toLocaleString()} caracteres en base64)`;
-  if(full.length<=N*per)fit=total;
-  else{let lo=0,hi=total;while(lo<hi){const m=(lo+hi+1)>>1;if((await pack(m)).length<=N*per)lo=m;else hi=m-1}fit=lo;b=await pack(fit)}
-  const n=Math.max(1,Math.ceil(b.length/per)),id=Math.random().toString(36).slice(2,6);
-  parts=Array.from({length:n},(_,i)=>`${id}|${i+1}|${n}|1|${b.slice(i*per,(i+1)*per)}`);
- }else{
-  const hb=hasH?by(H)+1:0,budget=cap-14-hb,chunks=[];let cur=[],cb=0;
-  for(const l of L){const b=by(l)+1;if(cb+b>budget&&cur.length){chunks.push(cur);cur=[];cb=0}cur.push(l);cb+=b}
-  if(cur.length)chunks.push(cur);need=chunks.length;const use=chunks.slice(0,N);fit=use.reduce((s,c)=>s+c.length,0);
-  parts=use.map((c,i)=>(use.length>1?`QR ${i+1}/${use.length}\n`:"")+(hasH?H+"\n":"")+c.join("\n"));
- }
- const ok=fit>=total,pct=(fit/total*100).toFixed(1);
- R.className="box "+(ok?"ok":"no");
- R.innerHTML=`<b>${ok?"✔ SÍ caben todos los datos":"✘ NO caben todos los datos"}</b> en ${parts.length} QR.<br>`+
-  `Filas totales: <b>${total.toLocaleString()}</b> · tamaño de la tabla: <b>${(rawB/1024).toFixed(1)} KB</b>${extra}<br>`+
-  `Filas incluidas en estos ${parts.length} QR: <b>${fit.toLocaleString()}</b> (${pct}%)<br>`+
-  (ok?"":`Para meter las ${total.toLocaleString()} filas harían falta <b>${need.toLocaleString()} QR</b> con esta configuración.`);
- const g=$("grid");g.innerHTML="";
- parts.forEach((t,i)=>{const d=document.createElement("div"),cv=document.createElement("canvas"),b=document.createElement("b");
-  d.className="it";drawQR(cv,t);b.textContent=`QR ${i+1} de ${parts.length}`;d.append(cv,b);g.append(d)});
-}
+const CAP=1200;
+
 async function load(f){
- if(!f)return;$("res").innerHTML='<span class="spin"></span>Leyendo…';
+ if(!f)return;
+ const R=$("res"),g=$("grid");g.innerHTML="";R.textContent="Procesando…";
+ await new Promise(r=>setTimeout(r));
  try{
-  if(/\.xlsx$/i.test(f.name))rawRows=await readXlsx(await f.arrayBuffer());
-  else{const b=await f.arrayBuffer();let t;try{t=new TextDecoder("utf-8",{fatal:true}).decode(b)}catch(e){t=new TextDecoder("windows-1252").decode(b)}rawRows=parseCSV(t)}
-  split();await run();
- }catch(e){$("res").textContent="Error: "+e.message}
+  let rows;
+  if(/\.xlsx$/i.test(f.name))rows=await readXlsx(await f.arrayBuffer());
+  else{const b=await f.arrayBuffer();let t;try{t=new TextDecoder("utf-8",{fatal:true}).decode(b)}catch(e){t=new TextDecoder("windows-1252").decode(b)}rows=parseCSV(t)}
+  const text=rows.map(r=>r.map(c=>String(c).replace(/[\t\r\n]+/g," ")).join("\t")).join("\n");
+  const comp=b64e(await deflate(new TextEncoder().encode(text)));
+  const per=CAP-14,n=Math.max(1,Math.ceil(comp.length/per)),id=Math.random().toString(36).slice(2,6);
+  const parts=Array.from({length:n},(_,i)=>`${id}|${i+1}|${n}|1|${comp.slice(i*per,(i+1)*per)}`);
+  R.innerHTML=`Filas: <b>${rows.length.toLocaleString()}</b> · Original: <b>${(text.length/1024).toFixed(1)} KB</b> · Comprimido: <b>${(comp.length*0.75/1024).toFixed(1)} KB</b><br>Se comprimió en <b>${n} QR</b>`;
+  parts.forEach((t,i)=>{
+   const d=document.createElement("div"),cv=document.createElement("canvas"),b=document.createElement("b");
+   d.className="it";drawQR(cv,t);b.textContent=`QR ${i+1} de ${n}`;d.append(cv,b);g.append(d);
+  });
+ }catch(e){R.textContent="Error: "+e.message}
 }
 const dz=$("drop"),fi=$("file");
 dz.onclick=()=>fi.click();fi.onchange=()=>load(fi.files[0]);
-dz.ondragover=e=>{e.preventDefault();dz.classList.add("on")};dz.ondragleave=()=>dz.classList.remove("on");
+dz.ondragover=e=>{e.preventDefault();dz.classList.add("on")};
+dz.ondragleave=()=>dz.classList.remove("on");
 dz.ondrop=e=>{e.preventDefault();dz.classList.remove("on");load(e.dataTransfer.files[0])};
-$("go").onclick=run;$("hd").onchange=()=>{if(rawRows.length){split();run()}};
-$("dgo").onclick=async()=>{
- const m=new Map();let N=0;
- for(const l of $("din").value.split(/\r?\n/)){const x=/^\s*[a-z0-9]{4}\|(\d+)\|(\d+)\|1\|(\S+)\s*$/.exec(l);if(x){m.set(+x[1],x[3]);N=+x[2]}}
- if(!N){$("dmsg").textContent="Sin partes válidas";return}
- const miss=[];for(let i=1;i<=N;i++)if(!m.has(i))miss.push(i);
- if(miss.length){$("dmsg").textContent="Faltan partes: "+miss.join(", ");return}
- try{$("dout").value=new TextDecoder().decode(await inflate(b64d([...Array(N).keys()].map(i=>m.get(i+1)).join(""))));$("dmsg").textContent="OK"}
- catch(e){$("dmsg").textContent="Datos dañados"}
-};
 </script></body></html>
