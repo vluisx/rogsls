@@ -1,22 +1,40 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Prueba: ¿caben mis datos en 1 o 2 QR?</title>
+<title>Roger Qr Detect</title>
 <style>
-:root{--bg:#f5f6f8;--fg:#1c1e21;--card:#fff;--bd:#d9dce1;--ac:#2563eb}
-@media(prefers-color-scheme:dark){:root{--bg:#15171a;--fg:#e8eaed;--card:#202327;--bd:#383c42;--ac:#5b8cff}}
-*{box-sizing:border-box}body{margin:auto;font-family:system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--fg);padding:16px;max-width:900px}
-h1{font-size:20px;margin:0 0 12px}.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
-#drop{border:2px dashed var(--bd);border-radius:10px;padding:20px;text-align:center;background:var(--card);cursor:pointer;margin-bottom:12px}
-#drop.on{border-color:var(--ac)}
-select,button,textarea,input[type=number]{padding:7px 10px;border:1px solid var(--bd);border-radius:6px;background:var(--card);color:var(--fg);font-size:14px}
-input[type=number]{width:70px}button{cursor:pointer}textarea{width:100%;height:90px;font-family:monospace;font-size:12px}
-.box{background:var(--card);border:1px solid var(--bd);border-radius:8px;padding:12px;margin-bottom:12px;font-size:14px;line-height:1.6}
-.ok{border-color:#16a34a}.no{border-color:#dc2626}
-#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
-.it{background:#fff;color:#111;border:1px solid var(--bd);border-radius:8px;padding:8px;text-align:center}
-.it canvas{width:100%;height:auto;image-rendering:pixelated}.it b{display:block}
+:root{--bg:#06122b;--bg2:#0b1d44;--card:#0f2a5f;--bd:#1f4a96;--fg:#e6f0ff;--mut:#9db8e6;--ac:#4da3ff;--ac2:#7cc4ff}
+*{box-sizing:border-box}
+body{margin:auto;font-family:system-ui,Segoe UI,Arial,sans-serif;color:var(--fg);padding:16px;max-width:900px;min-height:100vh;
+ background:radial-gradient(1200px 600px at 50% -10%,var(--bg2),var(--bg))}
+h1{font-size:34px;margin:6px 0 4px;text-align:center;letter-spacing:1px;font-weight:800}
+h1 span{display:inline-block;color:var(--ac2);animation:wave 1.8s ease-in-out infinite;text-shadow:0 0 14px rgba(77,163,255,.55)}
+h1 span.sp{width:.35em}
+@keyframes wave{0%,100%{transform:translateY(0);color:var(--ac2)}50%{transform:translateY(-8px);color:#fff}}
+.sub{text-align:center;color:var(--mut);font-size:13px;margin-bottom:18px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px;color:var(--mut)}
+#drop{border:2px dashed var(--bd);border-radius:12px;padding:22px;text-align:center;background:rgba(15,42,95,.55);cursor:pointer;margin-bottom:12px;transition:.2s}
+#drop:hover,#drop.on{border-color:var(--ac);box-shadow:0 0 18px rgba(77,163,255,.3)}
+select,button,textarea,input[type=number]{padding:8px 10px;border:1px solid var(--bd);border-radius:8px;background:var(--card);color:var(--fg);font-size:14px}
+input[type=number]{width:70px}button{cursor:pointer;transition:.15s}button:hover{border-color:var(--ac)}
+button.p{background:linear-gradient(135deg,#1f6fe0,#4da3ff);border:none;font-weight:700;color:#fff}
+textarea{width:100%;height:90px;font-family:monospace;font-size:12px}
+.box{background:rgba(15,42,95,.7);border:1px solid var(--bd);border-radius:10px;padding:14px;margin-bottom:12px;font-size:14px;line-height:1.7}
+.ok{border-color:#2ecc8f}.no{border-color:#ff7a7a}
+.spin{display:inline-block;width:16px;height:16px;border:3px solid var(--bd);border-top-color:var(--ac2);border-radius:50%;animation:rot .7s linear infinite;vertical-align:-3px;margin-right:6px}
+@keyframes rot{to{transform:rotate(360deg)}}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.it{background:#fff;color:#0a1a3a;border:3px solid var(--ac);border-radius:12px;padding:10px;text-align:center;animation:pop .35s ease both}
+@keyframes pop{from{opacity:0;transform:scale(.92)}to{opacity:1;transform:none}}
+.it canvas{width:100%;height:auto;image-rendering:pixelated}.it b{display:block;margin-top:4px}
+details{margin-top:14px;color:var(--mut)}summary{cursor:pointer;color:var(--ac2)}
+#splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;z-index:9;
+ animation:hide .4s ease 1s forwards;color:var(--ac2);font-weight:700;letter-spacing:2px}
+#splash i{width:46px;height:46px;border:5px solid var(--bd);border-top-color:var(--ac2);border-radius:50%;animation:rot .7s linear infinite}
+@keyframes hide{to{opacity:0;visibility:hidden}}
 </style></head><body>
-<h1>Prueba: ¿caben mis datos en 1 o 2 QR? (100% local)</h1>
+<div id="splash"><i></i>ROGER QR DETECT</div>
+<h1 id="ttl">Roger Qr Detect</h1>
+<div class="sub">Convierte tu Excel/CSV en QR · 100% local, sin internet</div>
 <div id="drop">Arrastra tu <b>.xlsx</b> o <b>.csv</b> aquí o haz clic<input id="file" type="file" accept=".xlsx,.csv,.txt" hidden></div>
 <div class="bar">
  <label><input id="hd" type="checkbox" checked> 1ª fila = encabezado</label>
@@ -24,18 +42,19 @@ input[type=number]{width:70px}button{cursor:pointer}textarea{width:100%;height:9
  <select id="dir"><option value="a">Ascendente</option><option value="d">Descendente</option></select>
 </div>
 <div class="bar">
- <label>Cantidad de QR: <input id="n" type="number" min="1" max="30" value="1"></label>
+ <label>Cantidad de QR: <input id="n" type="number" min="1" max="30" value="3"></label>
  <label>Modo: <select id="mode"><option value="p">Texto plano (el celular muestra los datos)</option><option value="z">Comprimido (caben más filas, requiere decodificador)</option></select></label>
- <label>Capacidad por QR: <select id="cap"><option value="2300">2300 (máxima, difícil de escanear)</option><option value="1200">1200 (recomendada)</option><option value="600">600 (muy fácil)</option></select></label>
- <button id="go">Probar</button>
+ <label>Capacidad por QR: <select id="cap"><option value="1200">1200 (escaneable)</option><option value="600">600 (muy fácil)</option><option value="2300">2300 (máxima, densa)</option></select></label>
+ <button id="go" class="p">Probar</button>
 </div>
 <div id="res" class="box">Carga un archivo para empezar.</div>
 <div id="grid"></div>
-<details style="margin-top:14px"><summary>Decodificador (solo para modo comprimido)</summary>
+<details><summary>Decodificador (solo para modo comprimido)</summary>
 <p style="font-size:13px">Pega los textos de los QR, uno por línea.</p><textarea id="din"></textarea>
 <div class="bar" style="margin-top:6px"><button id="dgo">Reconstruir</button><span id="dmsg"></span></div><textarea id="dout" readonly></textarea></details>
 <script>
 "use strict";
+(function(){const t=document.getElementById("ttl"),s="Roger Qr Detect";t.textContent="";[...s].forEach((c,i)=>{const e=document.createElement("span");e.textContent=c===" "?"\u00a0":c;if(c===" ")e.className="sp";e.style.animationDelay=(i*0.09)+"s";t.append(e)})})();
 /* ========== QR (nivel M, modo bytes, 100% propio) ========== */
 const QR=(()=>{
 const EC=[10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28];
@@ -181,7 +200,7 @@ function split(){
  for(let i=0;i<n;i++)s.add(new Option(headR[i]||"Columna "+(i+1),i));
 }
 async function run(){
- if(!data.length)return;const R=$("res");R.className="box";R.textContent="Calculando…";await new Promise(r=>setTimeout(r));
+ if(!data.length)return;const R=$("res");R.className="box";R.innerHTML='<span class="spin"></span>Calculando…';await new Promise(r=>setTimeout(r));
  const col=$("scol").value,dir=$("dir").value==="d"?-1:1;let rows=data.slice();
  if(col!=="")rows.sort((a,b)=>dir*String(a[col]??"").localeCompare(String(b[col]??""),"es",{numeric:true}));
  const hasH=headR.length>0,total=rows.length,H=hasH?line(headR):"";
@@ -213,7 +232,7 @@ async function run(){
   d.className="it";drawQR(cv,t);b.textContent=`QR ${i+1} de ${parts.length}`;d.append(cv,b);g.append(d)});
 }
 async function load(f){
- if(!f)return;$("res").textContent="Leyendo…";
+ if(!f)return;$("res").innerHTML='<span class="spin"></span>Leyendo…';
  try{
   if(/\.xlsx$/i.test(f.name))rawRows=await readXlsx(await f.arrayBuffer());
   else{const b=await f.arrayBuffer();let t;try{t=new TextDecoder("utf-8",{fatal:true}).decode(b)}catch(e){t=new TextDecoder("windows-1252").decode(b)}rawRows=parseCSV(t)}
